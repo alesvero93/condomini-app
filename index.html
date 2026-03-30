@@ -26,7 +26,7 @@
       padding: 22px;
       margin-bottom: 20px;
     }
-    h1, h2, h3 { margin-top: 0; }
+    h1, h2 { margin-top: 0; }
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -38,7 +38,7 @@
       margin-bottom: 6px;
       font-size: 14px;
     }
-    input, textarea {
+    input {
       width: 100%;
       padding: 12px;
       border: 1px solid #d1d5db;
@@ -47,7 +47,7 @@
       outline: none;
       font-family: inherit;
     }
-    input:focus, textarea:focus {
+    input:focus {
       border-color: #2563eb;
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
     }
@@ -74,8 +74,6 @@
     .secondary:hover { background: #d1d5db; }
     .danger { background: #dc2626; color: #fff; }
     .danger:hover { background: #b91c1c; }
-    .success-btn { background: #059669; color: #fff; }
-    .success-btn:hover { background: #047857; }
     .copy-btn {
       background: #ffffff;
       border: 1px solid #bfdbfe;
@@ -84,6 +82,23 @@
       width: 100%;
     }
     .copy-btn:hover { background: #eff6ff; }
+    .menu-btn {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .menu-btn span:last-child {
+      font-size: 18px;
+      line-height: 1;
+    }
+    .hidden-panel {
+      display: none;
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid #e5e7eb;
+    }
+    .hidden-panel.open { display: block; }
     .list {
       display: grid;
       gap: 12px;
@@ -160,22 +175,7 @@
       border: 1px solid #fdba74;
       color: #9a3412;
     }
-    .status-pill {
-      display: inline-block;
-      padding: 6px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: bold;
-      background: #dcfce7;
-      color: #166534;
-    }
     .search-box { flex: 1; min-width: 260px; }
-    code.inline {
-      background: #f3f4f6;
-      border-radius: 8px;
-      padding: 2px 6px;
-      font-size: 13px;
-    }
     @media (max-width: 640px) {
       .container { margin: 10px auto; padding: 12px; }
       .card { padding: 16px; border-radius: 16px; }
@@ -195,38 +195,6 @@
       <h1>Archivio Condomini Sync</h1>
       <p>Archivio sincronizzato tra dispositivi con collegamento automatico al database cloud.</p>
       <div class="badge">Connessione Supabase automatica</div>
-      <div id="connessioneStato"></div>
-    </div>
-
-    <div class="card">
-      <h2>Nuovo condominio</h2>
-      <div class="grid">
-        <div>
-          <label for="nome">Nome condominio</label>
-          <input id="nome" type="text" placeholder="Es. Condominio Corte Cisa" />
-        </div>
-        <div>
-          <label for="cf">Codice fiscale</label>
-          <input id="cf" type="text" placeholder="Es. 01234567890" />
-        </div>
-        <div>
-          <label for="iban">IBAN</label>
-          <input id="iban" type="text" placeholder="Es. IT60X0542811101000000123456" />
-        </div>
-        <div>
-          <label for="indirizzo">Indirizzo</label>
-          <input id="indirizzo" type="text" placeholder="Es. Via Roma 10, Verona" />
-        </div>
-      </div>
-
-      <div class="actions">
-        <button class="primary" onclick="salvaCondominio()">Salva condominio</button>
-        <button class="secondary" onclick="caricaEsempi()">Carica esempi</button>
-        <button class="danger" onclick="svuotaArchivio()">Elimina tutti i condomini</button>
-        <button class="secondary" onclick="sincronizzaOra()">Aggiorna elenco</button>
-      </div>
-
-      <p class="footer-note">Ogni salvataggio va nel database online. Aprendo questo file su un altro dispositivo vedrai gli stessi dati, perché il collegamento è già incluso nel codice.</p>
     </div>
 
     <div class="card">
@@ -235,19 +203,57 @@
         <div class="search-box">
           <input id="ricerca" type="text" placeholder="Scrivi il nome del condominio..." oninput="mostraLista()" />
         </div>
-        <div class="status-pill" id="statusBadge">Collegamento automatico</div>
+        <button class="secondary" onclick="sincronizzaOra()">Aggiorna elenco</button>
       </div>
 
       <div id="lista" class="list"></div>
       <div id="dettagli"></div>
       <div id="messaggioCondivisione"></div>
+      <div id="connessioneStato"></div>
     </div>
 
+    <div class="card">
+      <button class="primary menu-btn" onclick="toggleInserimento()">
+        <span>Inserisci condominio</span>
+        <span id="toggleIcon">+</span>
+      </button>
+
+      <div id="pannelloInserimento" class="hidden-panel">
+        <h2>Nuovo condominio</h2>
+        <div class="grid">
+          <div>
+            <label for="nome">Nome condominio</label>
+            <input id="nome" type="text" placeholder="Es. Condominio Corte Cisa" />
+          </div>
+          <div>
+            <label for="cf">Codice fiscale</label>
+            <input id="cf" type="text" placeholder="Es. 01234567890" />
+          </div>
+          <div>
+            <label for="iban">IBAN</label>
+            <input id="iban" type="text" placeholder="Es. IT60X0542811101000000123456" />
+          </div>
+          <div>
+            <label for="indirizzo">Indirizzo</label>
+            <input id="indirizzo" type="text" placeholder="Es. Via Roma 10, Verona" />
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="primary" onclick="salvaCondominio()">Salva condominio</button>
+          <button class="secondary" onclick="caricaEsempi()">Carica esempi</button>
+          <button class="danger" onclick="svuotaArchivio()">Elimina tutti i condomini</button>
+        </div>
+
+        <p class="footer-note">Ogni salvataggio va nel database online. Aprendo questo file su un altro dispositivo vedrai gli stessi dati, perché il collegamento è già incluso nel codice.</p>
+      </div>
     </div>
+  </div>
 
   <script>
     const SUPABASE_URL = 'https://nxgkrjqqyopqvofrmxho.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_9axdz4S_sDZtkgYz23vO5w_S3t63xE8';
+    const CODICE_SDI_FISSO = 'PAXCCYU';
 
     let condomini = [];
     let supabaseClient = null;
@@ -269,11 +275,21 @@
         .replace(/\r/g, ' ');
     }
 
+    function toggleInserimento() {
+      const pannello = document.getElementById('pannelloInserimento');
+      const icona = document.getElementById('toggleIcon');
+      pannello.classList.toggle('open');
+      icona.textContent = pannello.classList.contains('open') ? '−' : '+';
+    }
+
     function mostraMessaggio(testo, tipo = 'success', targetId = 'messaggioCondivisione') {
       const box = document.getElementById(targetId);
+      if (!box) return;
       box.innerHTML = `<div class="${tipo}">${escapeHtml(testo)}</div>`;
       clearTimeout(window.__msgTimeout);
-      window.__msgTimeout = setTimeout(() => box.innerHTML = '', 3000);
+      window.__msgTimeout = setTimeout(() => {
+        box.innerHTML = '';
+      }, 3000);
     }
 
     async function inizializzaSupabaseAuto() {
@@ -288,6 +304,7 @@
 
     async function caricaCondominiDaCloud() {
       if (!supabaseClient) return;
+
       const { data, error } = await supabaseClient
         .from('condomini')
         .select('*')
@@ -298,7 +315,7 @@
         return;
       }
 
-      condomini = data || [];
+      condomini = Array.isArray(data) ? data : [];
       mostraLista();
     }
 
@@ -325,14 +342,19 @@
         return;
       }
 
-      const esistente = condomini.find(c => c.nome.toLowerCase() === nome.toLowerCase());
+      const esistente = condomini.find(c => String(c.nome).toLowerCase() === nome.toLowerCase());
       let result;
 
       if (esistente) {
         if (!confirm('Esiste già un condominio con questo nome. Vuoi aggiornarlo?')) return;
-        result = await supabaseClient.from('condomini').update({ nome, cf, iban, indirizzo }).eq('id', esistente.id);
+        result = await supabaseClient
+          .from('condomini')
+          .update({ nome, cf, iban, indirizzo })
+          .eq('id', esistente.id);
       } else {
-        result = await supabaseClient.from('condomini').insert([{ nome, cf, iban, indirizzo }]);
+        result = await supabaseClient
+          .from('condomini')
+          .insert([{ nome, cf, iban, indirizzo }]);
       }
 
       if (result.error) {
@@ -349,9 +371,11 @@
       const query = (document.getElementById('ricerca')?.value || '').trim().toLowerCase();
       const lista = document.getElementById('lista');
       const dettagli = document.getElementById('dettagli');
+
+      if (!lista) return;
       if (dettagli) dettagli.innerHTML = '';
 
-      const filtrati = condomini.filter(c => c.nome.toLowerCase().includes(query));
+      const filtrati = condomini.filter(c => String(c.nome).toLowerCase().includes(query));
 
       if (filtrati.length === 0) {
         lista.innerHTML = '<div class="empty">Nessun condominio trovato.</div>';
@@ -367,11 +391,17 @@
     }
 
     function getCondominioByName(nome) {
-      return condomini.find(c => c.nome === nome);
+      return condomini.find(c => String(c.nome) === String(nome));
     }
 
     function creaTestoCondivisione(condominio) {
-      return `Condominio: ${condominio.nome}\nCodice fiscale: ${condominio.cf}\nIBAN: ${condominio.iban}\nIndirizzo: ${condominio.indirizzo}`;
+      return [
+        `Condominio: ${condominio.nome}`,
+        `Codice fiscale: ${condominio.cf}`,
+        `IBAN: ${condominio.iban}`,
+        `Indirizzo: ${condominio.indirizzo}`,
+        `Codice SDI: ${CODICE_SDI_FISSO}`
+      ].join('\n');
     }
 
     function creaTestoCondivisioneByName(nome) {
@@ -382,7 +412,7 @@
     function mostraDettagli(nome) {
       const dettagli = document.getElementById('dettagli');
       const condominio = getCondominioByName(nome);
-      if (!condominio) return;
+      if (!dettagli || !condominio) return;
 
       dettagli.innerHTML = `
         <div class="details">
@@ -390,6 +420,7 @@
           <p><strong>Codice fiscale:</strong> ${escapeHtml(condominio.cf)}</p>
           <p><strong>IBAN:</strong> ${escapeHtml(condominio.iban)}</p>
           <p><strong>Indirizzo:</strong> ${escapeHtml(condominio.indirizzo)}</p>
+          <p><strong>Codice SDI:</strong> ${CODICE_SDI_FISSO}</p>
 
           <div class="copy-help">Puoi copiare solo il dato che ti serve oppure tutto insieme.</div>
           <div class="copy-row">
@@ -418,6 +449,7 @@
         await navigator.clipboard.writeText(testo);
         return;
       }
+
       const area = document.createElement('textarea');
       area.value = testo;
       area.style.position = 'fixed';
@@ -437,11 +469,15 @@
     async function condividiCondominio(nome) {
       const condominio = getCondominioByName(nome);
       if (!condominio) return;
+
       const testo = creaTestoCondivisione(condominio);
 
       if (navigator.share) {
         try {
-          await navigator.share({ title: condominio.nome, text: testo });
+          await navigator.share({
+            title: condominio.nome,
+            text: testo
+          });
           mostraMessaggio('Dati condivisi con successo.');
           return;
         } catch (errore) {
@@ -456,6 +492,7 @@
     function inviaWhatsApp(nome) {
       const condominio = getCondominioByName(nome);
       if (!condominio) return;
+
       const testo = encodeURIComponent(creaTestoCondivisione(condominio));
       window.open(`https://wa.me/?text=${testo}`, '_blank');
     }
@@ -463,6 +500,7 @@
     function inviaEmail(nome) {
       const condominio = getCondominioByName(nome);
       if (!condominio) return;
+
       const subject = encodeURIComponent(`Dati ${condominio.nome}`);
       const body = encodeURIComponent(creaTestoCondivisione(condominio));
       window.location.href = `mailto:?subject=${subject}&body=${body}`;
@@ -471,11 +509,17 @@
     function caricaPerModifica(nome) {
       const condominio = getCondominioByName(nome);
       if (!condominio) return;
+
       document.getElementById('nome').value = condominio.nome;
       document.getElementById('cf').value = condominio.cf;
       document.getElementById('iban').value = condominio.iban;
       document.getElementById('indirizzo').value = condominio.indirizzo;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      const pannello = document.getElementById('pannelloInserimento');
+      const icona = document.getElementById('toggleIcon');
+      pannello.classList.add('open');
+      icona.textContent = '−';
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     }
 
     async function eliminaCondominio(nome) {
@@ -484,7 +528,11 @@
       if (!condominio) return;
       if (!confirm('Vuoi eliminare questo condominio?')) return;
 
-      const { error } = await supabaseClient.from('condomini').delete().eq('id', condominio.id);
+      const { error } = await supabaseClient
+        .from('condomini')
+        .delete()
+        .eq('id', condominio.id);
+
       if (error) {
         mostraMessaggio('Errore eliminazione: ' + error.message, 'warning', 'connessioneStato');
         return;
@@ -498,11 +546,17 @@
     async function svuotaArchivio() {
       if (!supabaseClient) return;
       if (!confirm('Vuoi davvero cancellare tutto l’archivio cloud?')) return;
-      const { error } = await supabaseClient.from('condomini').delete().neq('id', 0);
+
+      const { error } = await supabaseClient
+        .from('condomini')
+        .delete()
+        .neq('id', 0);
+
       if (error) {
         mostraMessaggio('Errore cancellazione archivio: ' + error.message, 'warning', 'connessioneStato');
         return;
       }
+
       condomini = [];
       mostraLista();
       document.getElementById('dettagli').innerHTML = '';
@@ -514,6 +568,7 @@
         mostraMessaggio('Database non collegato.', 'warning', 'connessioneStato');
         return;
       }
+
       await caricaCondominiDaCloud();
       mostraMessaggio('Elenco aggiornato dal cloud.', 'success', 'connessioneStato');
     }
@@ -531,7 +586,7 @@
       ];
 
       for (const item of esempi) {
-        const esistente = condomini.find(c => c.nome.toLowerCase() === item.nome.toLowerCase());
+        const esistente = condomini.find(c => String(c.nome).toLowerCase() === item.nome.toLowerCase());
         if (!esistente) {
           const { error } = await supabaseClient.from('condomini').insert([item]);
           if (error) {
@@ -544,8 +599,6 @@
       await caricaCondominiDaCloud();
       mostraMessaggio('Esempi caricati nel cloud.', 'success', 'connessioneStato');
     }
-
-    
 
     inizializzaSupabaseAuto();
   </script>
