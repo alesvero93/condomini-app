@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Archivio Condomini Sync</title>
+  <meta name="theme-color" content="#2563eb" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f4f6f8;
+      color: #1f2937;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 28px auto;
+      padding: 18px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+      padding: 22px;
+      margin-bottom: 20px;
+    }
+    h1, h2, h3 { margin-top: 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+    }
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 12px;
+      font-size: 15px;
+      outline: none;
+      font-family: inherit;
+    }
+    input:focus, textarea:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+    .actions, .share-actions, .copy-row, .top-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+      align-items: center;
+    }
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: .2s ease;
+      min-height: 46px;
+    }
+    .primary { background: #2563eb; color: #fff; }
+    .primary:hover { background: #1d4ed8; }
+    .secondary { background: #e5e7eb; color: #111827; }
+    .secondary:hover { background: #d1d5db; }
+    .danger { background: #dc2626; color: #fff; }
+    .danger:hover { background: #b91c1c; }
+    .success-btn { background: #059669; color: #fff; }
+    .success-btn:hover { background: #047857; }
+    .copy-btn {
+      background: #ffffff;
+      border: 1px solid #bfdbfe;
+      color: #1d4ed8;
+      text-align: left;
+      width: 100%;
+    }
+    .copy-btn:hover { background: #eff6ff; }
+    .list {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .item {
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 16px;
+      background: #fafafa;
+      cursor: pointer;
+      transition: .2s ease;
+    }
+    .item:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+      background: #fff;
+    }
+    .item-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+    .muted { color: #6b7280; font-size: 14px; }
+    .details {
+      margin-top: 18px;
+      padding: 18px;
+      border-radius: 16px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+    }
+    .details p {
+      margin: 10px 0;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+    .empty {
+      text-align: center;
+      color: #6b7280;
+      padding: 20px;
+      border: 1px dashed #cbd5e1;
+      border-radius: 14px;
+      background: #fff;
+    }
+    .badge {
+      display: inline-block;
+      background: #dbeafe;
+      color: #1d4ed8;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .footer-note, .copy-help {
+      font-size: 13px;
+      color: #475569;
+      margin-top: 12px;
+      line-height: 1.45;
+    }
+    .success, .warning {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+    }
+    .success {
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      color: #065f46;
+    }
+    .warning {
+      background: #fff7ed;
+      border: 1px solid #fdba74;
+      color: #9a3412;
+    }
+    .status-pill {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: bold;
+      background: #dcfce7;
+      color: #166534;
+    }
+    .search-box { flex: 1; min-width: 260px; }
+    code.inline {
+      background: #f3f4f6;
+      border-radius: 8px;
+      padding: 2px 6px;
+      font-size: 13px;
+    }
+    @media (max-width: 640px) {
+      .container { margin: 10px auto; padding: 12px; }
+      .card { padding: 16px; border-radius: 16px; }
+      h1 { font-size: 26px; }
+      h2 { font-size: 22px; }
+      .grid { grid-template-columns: 1fr; }
+      .top-row, .actions, .share-actions, .copy-row { flex-direction: column; align-items: stretch; }
+      .search-box { min-width: 100%; }
+      button { width: 100%; }
+      .item-title { font-size: 17px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Archivio Condomini Sync</h1>
+      <p>Archivio sincronizzato tra dispositivi con collegamento automatico al database cloud.</p>
+      <div class="badge">Connessione Supabase automatica</div>
+      <div id="connessioneStato"></div>
+    </div>
+
+    <div class="card">
+      <h2>Nuovo condominio</h2>
+      <div class="grid">
+        <div>
+          <label for="nome">Nome condominio</label>
+          <input id="nome" type="text" placeholder="Es. Condominio Corte Cisa" />
+        </div>
+        <div>
+          <label for="cf">Codice fiscale</label>
+          <input id="cf" type="text" placeholder="Es. 01234567890" />
+        </div>
+        <div>
+          <label for="iban">IBAN</label>
+          <input id="iban" type="text" placeholder="Es. IT60X0542811101000000123456" />
+        </div>
+        <div>
+          <label for="indirizzo">Indirizzo</label>
+          <input id="indirizzo" type="text" placeholder="Es. Via Roma 10, Verona" />
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="primary" onclick="salvaCondominio()">Salva condominio</button>
+        <button class="secondary" onclick="caricaEsempi()">Carica esempi</button>
+        <button class="danger" onclick="svuotaArchivio()">Elimina tutti i condomini</button>
+        <button class="secondary" onclick="sincronizzaOra()">Aggiorna elenco</button>
+      </div>
+
+      <p class="footer-note">Ogni salvataggio va nel database online. Aprendo questo file su un altro dispositivo vedrai gli stessi dati, perché il collegamento è già incluso nel codice.</p>
+    </div>
+
+    <div class="card">
+      <h2>Ricerca condomini</h2>
+      <div class="top-row">
+        <div class="search-box">
+          <input id="ricerca" type="text" placeholder="Scrivi il nome del condominio..." oninput="mostraLista()" />
+        </div>
+        <div class="status-pill" id="statusBadge">Collegamento automatico</div>
+      </div>
+
+      <div id="lista" class="list"></div>
+      <div id="dettagli"></div>
+      <div id="messaggioCondivisione"></div>
+    </div>
+
+    </div>
+
+  <script>
+    const SUPABASE_URL = 'https://nxgkrjqqyopqvofrmxho.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_9axdz4S_sDZtkgYz23vO5w_S3t63xE8';
+
+    let condomini = [];
+    let supabaseClient = null;
+
+    function escapeHtml(testo) {
+      return String(testo)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function escapeJs(testo) {
+      return String(testo)
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/\n/g, ' ')
+        .replace(/\r/g, ' ');
+    }
+
+    function mostraMessaggio(testo, tipo = 'success', targetId = 'messaggioCondivisione') {
+      const box = document.getElementById(targetId);
+      box.innerHTML = `<div class="${tipo}">${escapeHtml(testo)}</div>`;
+      clearTimeout(window.__msgTimeout);
+      window.__msgTimeout = setTimeout(() => box.innerHTML = '', 3000);
+    }
+
+    async function inizializzaSupabaseAuto() {
+      try {
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        await caricaCondominiDaCloud();
+        mostraMessaggio('Database collegato automaticamente.', 'success', 'connessioneStato');
+      } catch (errore) {
+        mostraMessaggio('Errore collegando il database: ' + errore.message, 'warning', 'connessioneStato');
+      }
+    }
+
+    async function caricaCondominiDaCloud() {
+      if (!supabaseClient) return;
+      const { data, error } = await supabaseClient
+        .from('condomini')
+        .select('*')
+        .order('nome', { ascending: true });
+
+      if (error) {
+        mostraMessaggio('Errore lettura database: ' + error.message, 'warning', 'connessioneStato');
+        return;
+      }
+
+      condomini = data || [];
+      mostraLista();
+    }
+
+    function pulisciCampi() {
+      document.getElementById('nome').value = '';
+      document.getElementById('cf').value = '';
+      document.getElementById('iban').value = '';
+      document.getElementById('indirizzo').value = '';
+    }
+
+    async function salvaCondominio() {
+      if (!supabaseClient) {
+        mostraMessaggio('Database non collegato.', 'warning', 'connessioneStato');
+        return;
+      }
+
+      const nome = document.getElementById('nome').value.trim();
+      const cf = document.getElementById('cf').value.trim();
+      const iban = document.getElementById('iban').value.trim();
+      const indirizzo = document.getElementById('indirizzo').value.trim();
+
+      if (!nome || !cf || !iban || !indirizzo) {
+        alert('Compila tutti i campi prima di salvare.');
+        return;
+      }
+
+      const esistente = condomini.find(c => c.nome.toLowerCase() === nome.toLowerCase());
+      let result;
+
+      if (esistente) {
+        if (!confirm('Esiste già un condominio con questo nome. Vuoi aggiornarlo?')) return;
+        result = await supabaseClient.from('condomini').update({ nome, cf, iban, indirizzo }).eq('id', esistente.id);
+      } else {
+        result = await supabaseClient.from('condomini').insert([{ nome, cf, iban, indirizzo }]);
+      }
+
+      if (result.error) {
+        mostraMessaggio('Errore salvataggio: ' + result.error.message, 'warning', 'connessioneStato');
+        return;
+      }
+
+      pulisciCampi();
+      await caricaCondominiDaCloud();
+      mostraMessaggio('Condominio salvato nel cloud.', 'success', 'connessioneStato');
+    }
+
+    function mostraLista() {
+      const query = (document.getElementById('ricerca')?.value || '').trim().toLowerCase();
+      const lista = document.getElementById('lista');
+      const dettagli = document.getElementById('dettagli');
+      if (dettagli) dettagli.innerHTML = '';
+
+      const filtrati = condomini.filter(c => c.nome.toLowerCase().includes(query));
+
+      if (filtrati.length === 0) {
+        lista.innerHTML = '<div class="empty">Nessun condominio trovato.</div>';
+        return;
+      }
+
+      lista.innerHTML = filtrati.map(c => `
+        <div class="item" onclick="mostraDettagli('${escapeJs(c.nome)}')">
+          <div class="item-title">${escapeHtml(c.nome)}</div>
+          <div class="muted">Tocca per vedere dati, copiare e condividere</div>
+        </div>
+      `).join('');
+    }
+
+    function getCondominioByName(nome) {
+      return condomini.find(c => c.nome === nome);
+    }
+
+    function creaTestoCondivisione(condominio) {
+      return `Condominio: ${condominio.nome}\nCodice fiscale: ${condominio.cf}\nIBAN: ${condominio.iban}\nIndirizzo: ${condominio.indirizzo}`;
+    }
+
+    function creaTestoCondivisioneByName(nome) {
+      const condominio = getCondominioByName(nome);
+      return condominio ? creaTestoCondivisione(condominio) : '';
+    }
+
+    function mostraDettagli(nome) {
+      const dettagli = document.getElementById('dettagli');
+      const condominio = getCondominioByName(nome);
+      if (!condominio) return;
+
+      dettagli.innerHTML = `
+        <div class="details">
+          <h2>${escapeHtml(condominio.nome)}</h2>
+          <p><strong>Codice fiscale:</strong> ${escapeHtml(condominio.cf)}</p>
+          <p><strong>IBAN:</strong> ${escapeHtml(condominio.iban)}</p>
+          <p><strong>Indirizzo:</strong> ${escapeHtml(condominio.indirizzo)}</p>
+
+          <div class="copy-help">Puoi copiare solo il dato che ti serve oppure tutto insieme.</div>
+          <div class="copy-row">
+            <button class="copy-btn" onclick="copiaCampo('Codice fiscale', '${escapeJs(condominio.cf)}')">Copia codice fiscale</button>
+            <button class="copy-btn" onclick="copiaCampo('IBAN', '${escapeJs(condominio.iban)}')">Copia IBAN</button>
+            <button class="copy-btn" onclick="copiaCampo('Indirizzo', '${escapeJs(condominio.indirizzo)}')">Copia indirizzo</button>
+            <button class="copy-btn" onclick="copiaCampo('Tutti i dati', creaTestoCondivisioneByName('${escapeJs(condominio.nome)}'))">Copia tutto</button>
+          </div>
+
+          <div class="share-actions">
+            <button class="primary" onclick="condividiCondominio('${escapeJs(condominio.nome)}')">Condividi con un click</button>
+            <button class="secondary" onclick="inviaWhatsApp('${escapeJs(condominio.nome)}')">Invia su WhatsApp</button>
+            <button class="secondary" onclick="inviaEmail('${escapeJs(condominio.nome)}')">Invia per email</button>
+          </div>
+
+          <div class="actions">
+            <button class="secondary" onclick="caricaPerModifica('${escapeJs(condominio.nome)}')">Modifica</button>
+            <button class="danger" onclick="eliminaCondominio('${escapeJs(condominio.nome)}')">Elimina</button>
+          </div>
+        </div>
+      `;
+    }
+
+    async function copiaTestoFallback(testo) {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(testo);
+        return;
+      }
+      const area = document.createElement('textarea');
+      area.value = testo;
+      area.style.position = 'fixed';
+      area.style.opacity = '0';
+      document.body.appendChild(area);
+      area.focus();
+      area.select();
+      document.execCommand('copy');
+      document.body.removeChild(area);
+    }
+
+    async function copiaCampo(etichetta, valore) {
+      await copiaTestoFallback(valore);
+      mostraMessaggio(etichetta + ' copiato negli appunti.');
+    }
+
+    async function condividiCondominio(nome) {
+      const condominio = getCondominioByName(nome);
+      if (!condominio) return;
+      const testo = creaTestoCondivisione(condominio);
+
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: condominio.nome, text: testo });
+          mostraMessaggio('Dati condivisi con successo.');
+          return;
+        } catch (errore) {
+          if (errore && errore.name === 'AbortError') return;
+        }
+      }
+
+      await copiaTestoFallback(testo);
+      mostraMessaggio('Condivisione non disponibile qui. Ho copiato i dati negli appunti.');
+    }
+
+    function inviaWhatsApp(nome) {
+      const condominio = getCondominioByName(nome);
+      if (!condominio) return;
+      const testo = encodeURIComponent(creaTestoCondivisione(condominio));
+      window.open(`https://wa.me/?text=${testo}`, '_blank');
+    }
+
+    function inviaEmail(nome) {
+      const condominio = getCondominioByName(nome);
+      if (!condominio) return;
+      const subject = encodeURIComponent(`Dati ${condominio.nome}`);
+      const body = encodeURIComponent(creaTestoCondivisione(condominio));
+      window.location.href = `mailto:?subject=${subject}&body=${body}`;
+    }
+
+    function caricaPerModifica(nome) {
+      const condominio = getCondominioByName(nome);
+      if (!condominio) return;
+      document.getElementById('nome').value = condominio.nome;
+      document.getElementById('cf').value = condominio.cf;
+      document.getElementById('iban').value = condominio.iban;
+      document.getElementById('indirizzo').value = condominio.indirizzo;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function eliminaCondominio(nome) {
+      if (!supabaseClient) return;
+      const condominio = getCondominioByName(nome);
+      if (!condominio) return;
+      if (!confirm('Vuoi eliminare questo condominio?')) return;
+
+      const { error } = await supabaseClient.from('condomini').delete().eq('id', condominio.id);
+      if (error) {
+        mostraMessaggio('Errore eliminazione: ' + error.message, 'warning', 'connessioneStato');
+        return;
+      }
+
+      await caricaCondominiDaCloud();
+      document.getElementById('dettagli').innerHTML = '';
+      mostraMessaggio('Condominio eliminato.', 'success', 'connessioneStato');
+    }
+
+    async function svuotaArchivio() {
+      if (!supabaseClient) return;
+      if (!confirm('Vuoi davvero cancellare tutto l’archivio cloud?')) return;
+      const { error } = await supabaseClient.from('condomini').delete().neq('id', 0);
+      if (error) {
+        mostraMessaggio('Errore cancellazione archivio: ' + error.message, 'warning', 'connessioneStato');
+        return;
+      }
+      condomini = [];
+      mostraLista();
+      document.getElementById('dettagli').innerHTML = '';
+      mostraMessaggio('Archivio cloud svuotato.', 'success', 'connessioneStato');
+    }
+
+    async function sincronizzaOra() {
+      if (!supabaseClient) {
+        mostraMessaggio('Database non collegato.', 'warning', 'connessioneStato');
+        return;
+      }
+      await caricaCondominiDaCloud();
+      mostraMessaggio('Elenco aggiornato dal cloud.', 'success', 'connessioneStato');
+    }
+
+    async function caricaEsempi() {
+      if (!supabaseClient) {
+        mostraMessaggio('Database non collegato.', 'warning', 'connessioneStato');
+        return;
+      }
+
+      const esempi = [
+        { nome: 'Condominio Corte Cisa', cf: '01234567890', iban: 'IT60X0542811101000000123456', indirizzo: 'Via Cisa 14, Parma' },
+        { nome: 'Condominio Quadrifoglio', cf: '09876543210', iban: 'IT11A0306909606100000123456', indirizzo: 'Via Verdi 22, Verona' },
+        { nome: 'Residenza Fiera', cf: '12345098765', iban: 'IT32B0200811101000000987654', indirizzo: 'Viale del Lavoro 8, Verona' }
+      ];
+
+      for (const item of esempi) {
+        const esistente = condomini.find(c => c.nome.toLowerCase() === item.nome.toLowerCase());
+        if (!esistente) {
+          const { error } = await supabaseClient.from('condomini').insert([item]);
+          if (error) {
+            mostraMessaggio('Errore caricando esempi: ' + error.message, 'warning', 'connessioneStato');
+            return;
+          }
+        }
+      }
+
+      await caricaCondominiDaCloud();
+      mostraMessaggio('Esempi caricati nel cloud.', 'success', 'connessioneStato');
+    }
+
+    
+
+    inizializzaSupabaseAuto();
+  </script>
+</body>
+</html>
