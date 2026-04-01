@@ -117,6 +117,23 @@
       box-shadow: 0 6px 18px rgba(0,0,0,0.08);
       background: #fff;
     }
+    .item.open {
+      background: #fff;
+      border-color: #93c5fd;
+      box-shadow: 0 6px 18px rgba(37,99,235,0.12);
+    }
+    .item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .item-arrow {
+      font-size: 20px;
+      color: #2563eb;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
     .item-title {
       font-size: 18px;
       font-weight: bold;
@@ -207,7 +224,6 @@
       </div>
 
       <div id="lista" class="list"></div>
-      <div id="dettagli"></div>
       <div id="messaggioCondivisione"></div>
       <div id="connessioneStato"></div>
     </div>
@@ -242,7 +258,7 @@
         <div class="actions">
           <button class="primary" onclick="salvaCondominio()">Salva condominio</button>
           <button class="secondary" onclick="caricaEsempi()">Carica esempi</button>
-          <button class="danger" onclick="svuotaArchivio()">Elimina tutti i condomini</button>
+          <button class="danger" onclick="svuotaArchivio()" style="display:none;">Elimina tutti i condomini</button>
         </div>
 
         <p class="footer-note">Ogni salvataggio va nel database online. Aprendo questo file su un altro dispositivo vedrai gli stessi dati, perché il collegamento è già incluso nel codice.</p>
@@ -257,6 +273,7 @@
 
     let condomini = [];
     let supabaseClient = null;
+    let condominioAperto = null;
 
     function escapeHtml(testo) {
       return String(testo)
@@ -370,10 +387,8 @@
     function mostraLista() {
       const query = (document.getElementById('ricerca')?.value || '').trim().toLowerCase();
       const lista = document.getElementById('lista');
-      const dettagli = document.getElementById('dettagli');
 
       if (!lista) return;
-      if (dettagli) dettagli.innerHTML = '';
 
       const filtrati = condomini.filter(c => String(c.nome).toLowerCase().includes(query));
 
@@ -382,12 +397,58 @@
         return;
       }
 
-      lista.innerHTML = filtrati.map(c => `
-        <div class="item" onclick="mostraDettagli('${escapeJs(c.nome)}')">
-          <div class="item-title">${escapeHtml(c.nome)}</div>
-          <div class="muted">Tocca per vedere dati, copiare e condividere</div>
-        </div>
-      `).join('');
+      if (condominioAperto && !filtrati.some(c => String(c.nome) === String(condominioAperto))) {
+        condominioAperto = null;
+      }
+
+      lista.innerHTML = filtrati.map(c => {
+        const aperto = String(condominioAperto) === String(c.nome);
+        return `
+          <div class="item ${aperto ? 'open' : ''}">
+            <div class="item-header" onclick="toggleDettagli('${escapeJs(c.nome)}')">
+              <div>
+                <div class="item-title">${escapeHtml(c.nome)}</div>
+                <div class="muted">Tocca per vedere dati, copiare e condividere</div>
+              </div>
+              <div class="item-arrow">${aperto ? '−' : '+'}</div>
+            </div>
+
+            ${aperto ? `
+              <div class="details">
+                <h2>${escapeHtml(c.nome)}</h2>
+                <p><strong>Codice fiscale:</strong> ${escapeHtml(c.cf)}</p>
+                <p><strong>IBAN:</strong> ${escapeHtml(c.iban)}</p>
+                <p><strong>Indirizzo:</strong> ${escapeHtml(c.indirizzo)}</p>
+                <p><strong>Codice SDI:</strong> ${CODICE_SDI_FISSO}</p>
+
+                <div class="copy-help">Puoi copiare solo il dato che ti serve oppure tutto insieme.</div>
+                <div class="copy-row">
+                  <button class="copy-btn" onclick="event.stopPropagation(); copiaCampo('Codice fiscale', '${escapeJs(c.cf)}')">Copia codice fiscale</button>
+                  <button class="copy-btn" onclick="event.stopPropagation(); copiaCampo('IBAN', '${escapeJs(c.iban)}')">Copia IBAN</button>
+                  <button class="copy-btn" onclick="event.stopPropagation(); copiaCampo('Indirizzo', '${escapeJs(c.indirizzo)}')">Copia indirizzo</button>
+                  <button class="copy-btn" onclick="event.stopPropagation(); copiaCampo('Tutti i dati', creaTestoCondivisioneByName('${escapeJs(c.nome)}'))">Copia tutto</button>
+                </div>
+
+                <div class="share-actions">
+                  <button class="primary" onclick="event.stopPropagation(); condividiCondominio('${escapeJs(c.nome)}')">Condividi con un click</button>
+                  <button class="secondary" onclick="event.stopPropagation(); inviaWhatsApp('${escapeJs(c.nome)}')">Invia su WhatsApp</button>
+                  <button class="secondary" onclick="event.stopPropagation(); inviaEmail('${escapeJs(c.nome)}')">Invia per email</button>
+                </div>
+
+                <div class="actions">
+                  <button class="secondary" onclick="event.stopPropagation(); caricaPerModifica('${escapeJs(c.nome)}')">Modifica</button>
+                  <button class="danger" onclick="event.stopPropagation(); eliminaCondominio('${escapeJs(c.nome)}')">Elimina</button>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function toggleDettagli(nome) {
+      condominioAperto = String(condominioAperto) === String(nome) ? null : nome;
+      mostraLista();
     }
 
     function getCondominioByName(nome) {
@@ -407,41 +468,6 @@
     function creaTestoCondivisioneByName(nome) {
       const condominio = getCondominioByName(nome);
       return condominio ? creaTestoCondivisione(condominio) : '';
-    }
-
-    function mostraDettagli(nome) {
-      const dettagli = document.getElementById('dettagli');
-      const condominio = getCondominioByName(nome);
-      if (!dettagli || !condominio) return;
-
-      dettagli.innerHTML = `
-        <div class="details">
-          <h2>${escapeHtml(condominio.nome)}</h2>
-          <p><strong>Codice fiscale:</strong> ${escapeHtml(condominio.cf)}</p>
-          <p><strong>IBAN:</strong> ${escapeHtml(condominio.iban)}</p>
-          <p><strong>Indirizzo:</strong> ${escapeHtml(condominio.indirizzo)}</p>
-          <p><strong>Codice SDI:</strong> ${CODICE_SDI_FISSO}</p>
-
-          <div class="copy-help">Puoi copiare solo il dato che ti serve oppure tutto insieme.</div>
-          <div class="copy-row">
-            <button class="copy-btn" onclick="copiaCampo('Codice fiscale', '${escapeJs(condominio.cf)}')">Copia codice fiscale</button>
-            <button class="copy-btn" onclick="copiaCampo('IBAN', '${escapeJs(condominio.iban)}')">Copia IBAN</button>
-            <button class="copy-btn" onclick="copiaCampo('Indirizzo', '${escapeJs(condominio.indirizzo)}')">Copia indirizzo</button>
-            <button class="copy-btn" onclick="copiaCampo('Tutti i dati', creaTestoCondivisioneByName('${escapeJs(condominio.nome)}'))">Copia tutto</button>
-          </div>
-
-          <div class="share-actions">
-            <button class="primary" onclick="condividiCondominio('${escapeJs(condominio.nome)}')">Condividi con un click</button>
-            <button class="secondary" onclick="inviaWhatsApp('${escapeJs(condominio.nome)}')">Invia su WhatsApp</button>
-            <button class="secondary" onclick="inviaEmail('${escapeJs(condominio.nome)}')">Invia per email</button>
-          </div>
-
-          <div class="actions">
-            <button class="secondary" onclick="caricaPerModifica('${escapeJs(condominio.nome)}')">Modifica</button>
-            <button class="danger" onclick="eliminaCondominio('${escapeJs(condominio.nome)}')">Elimina</button>
-          </div>
-        </div>
-      `;
     }
 
     async function copiaTestoFallback(testo) {
@@ -538,12 +564,17 @@
         return;
       }
 
+      if (String(condominioAperto) === String(nome)) condominioAperto = null;
       await caricaCondominiDaCloud();
-      document.getElementById('dettagli').innerHTML = '';
       mostraMessaggio('Condominio eliminato.', 'success', 'connessioneStato');
     }
 
     async function svuotaArchivio() {
+      const password = prompt("Inserisci password admin:");
+      if (password !== "admin123") {
+        alert("Accesso negato.");
+        return;
+      }
       if (!supabaseClient) return;
       if (!confirm('Vuoi davvero cancellare tutto l’archivio cloud?')) return;
 
@@ -558,8 +589,8 @@
       }
 
       condomini = [];
+      condominioAperto = null;
       mostraLista();
-      document.getElementById('dettagli').innerHTML = '';
       mostraMessaggio('Archivio cloud svuotato.', 'success', 'connessioneStato');
     }
 
